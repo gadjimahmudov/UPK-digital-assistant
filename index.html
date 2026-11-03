@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>УПК — Цифровой помощник</title>
+<style>
+:root{--bg:#f4f6fa;--c:#fff;--t:#1d2433;--m:#6b7589;--p:#2456d6;--l:#dfe4ee;--r:#c62828}
+@media(prefers-color-scheme:dark){:root{--bg:#121722;--c:#1b2332;--t:#e8ecf5;--m:#98a3b8;--p:#6e93f5;--l:#2c3548;--r:#ff7b7b}}
+*{box-sizing:border-box}body{margin:0;font:16px/1.45 system-ui,sans-serif;background:var(--bg);color:var(--t)}
+header{background:var(--c);border-bottom:1px solid var(--l);padding:10px 14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;position:sticky;top:0;z-index:5}
+header b{margin-right:auto}nav{display:flex;gap:6px}
+main{max-width:920px;margin:0 auto;padding:14px}.card{background:var(--c);border:1px solid var(--l);border-radius:12px;padding:14px;margin-bottom:14px}
+h2,h3,h4{margin:.2em 0 .5em}h4{color:var(--m);font-size:.85rem;text-transform:uppercase;margin-top:1em}
+label{display:block;font-size:.9rem;color:var(--m);margin:10px 0 4px}
+input,select,textarea,button{font:inherit;color:var(--t)}input,select,textarea{width:100%;padding:10px;border:1px solid var(--l);border-radius:8px;background:var(--bg)}textarea{min-height:90px;resize:vertical}
+button{padding:10px 14px;border:1px solid var(--l);border-radius:8px;background:var(--c);cursor:pointer}button:hover{border-color:var(--p)}
+button.p{background:var(--p);border-color:var(--p);color:#fff;font-weight:600}button:disabled{opacity:.5}nav button.on{background:var(--p);color:#fff;border-color:var(--p)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.row>*{flex:1 1 auto;width:auto}.m{color:var(--m);font-size:.9rem}.err{color:var(--r)}.pre{white-space:pre-line}
+.ai{margin-top:10px;padding:12px;border-radius:10px;border:1px solid var(--l);white-space:pre-line}
+.ai.danger{background:#fdecea;border:2px solid var(--r);color:#7a1212;font-weight:600}.ai.fault{background:#fff4e0;color:#6a4300}.ai.question{background:#e8f0ff;color:#173a8a}.ai.unknown{background:#eef0f4;color:#3b4457}
+.b{display:inline-block;padding:2px 9px;border-radius:99px;font-size:.8rem;background:#e8eaf0;color:#333}
+.b[data-s=new]{background:#e8f0ff;color:#1b4bb8}.b[data-s=in_progress],.b[data-s=assigned]{background:#fff0d6;color:#8a5200}.b[data-s=resolved]{background:#dff5e3;color:#14692b}.b[data-s=rejected]{background:#fde2e2;color:#9b1c1c}.b[data-s=needs_info]{background:#f3e2fb;color:#6d1b8f}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:.92rem}th,td{padding:8px;border-bottom:1px solid var(--l);text-align:left;white-space:nowrap}th{color:var(--m);font-weight:600}tbody tr{cursor:pointer}tbody tr:hover{background:var(--bg)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}.chip{background:var(--bg);border:1px solid var(--l);border-radius:10px;padding:6px 10px;font-size:.88rem}.chip b{font-size:1.1rem}
+dialog{width:min(680px,96vw);max-height:92vh;border:1px solid var(--l);border-radius:14px;background:var(--c);color:var(--t);padding:16px}dialog::backdrop{background:#0008}
+.ok{background:#e9f8ee;border:1px solid #9bd8ac;color:#14532d;padding:14px;border-radius:10px}.ok a{word-break:break-all}
+.cm{border-left:3px solid var(--l);padding:4px 10px;margin:6px 0}.cm.int{border-color:#e0a800;background:#fffbea40}#imgs img{max-width:140px;border-radius:8px;margin:4px}
+#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:8px;opacity:0;transition:.2s;pointer-events:none;z-index:99}#toast.on{opacity:1}
+</style></head><body>
+<header><b>🏫 УПК · Цифровой помощник</b><nav><button data-v="new" class="on">Подать заявку</button><button data-v="track">Отследить</button><button data-v="staff">Сотрудник</button></nav></header>
+<main>
+<div id="srverr" class="card err" hidden>Нет связи с сервером. Запустите backend: <code>python app.py</code> (http://localhost:8000)</div>
+
+<section id="v-new">
+ <div class="card"><h2>🤖 Спросите ИИ-помощника</h2>
+  <textarea id="aitext" placeholder="Например: «Как подключить проектор?» или «В кабинете 214 не работает проектор»"></textarea>
+  <div class="row" style="margin-top:8px"><button id="askai" class="p">Спросить ИИ</button></div><div id="aiout"></div></div>
+ <form id="f" class="card"><h2>📝 Заявка</h2><div id="locinfo" class="m"></div>
+  <label>Место *</label><select id="loc"></select>
+  <label>Категория *</label><select id="cat"></select>
+  <label>Тема (необязательно)</label><input id="title" maxlength="120" placeholder="Заполнится из описания">
+  <label>Описание проблемы * (от 10 символов)</label><textarea id="desc" maxlength="2000"></textarea>
+  <label>Фото (до 3, необязательно)</label><input id="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+  <label>Контакт для уточнений (необязательно)</label><input id="contact" maxlength="150" placeholder="почта, телефон или Telegram">
+  <div id="ferr" class="err"></div><div class="row" style="margin-top:12px"><button class="p" id="send">Отправить заявку</button></div></form>
+ <div id="done" class="ok" hidden></div>
+</section>
+
+<section id="v-track" hidden><div class="card"><h2>🔎 Отслеживание заявки</h2>
+ <div class="row"><input id="tk" placeholder="Вставьте ссылку или код отслеживания"><button id="tkb" class="p">Найти</button></div></div><div id="tr"></div></section>
+
+<section id="v-staff" hidden>
+ <form id="login" class="card"><h2>Вход сотрудника УПК</h2><label>Логин</label><input id="lg" value="admin" autocomplete="username"><label>Пароль</label><input id="pw" type="password" value="demo12345" autocomplete="current-password">
+  <div id="lerr" class="err"></div><div class="row" style="margin-top:10px"><button class="p">Войти</button></div></form>
+ <div id="panel" hidden>
+  <div class="row" style="margin-bottom:10px"><b id="who"></b><button id="out" style="flex:0">Выйти</button></div><div id="stats" class="chips"></div>
+  <div class="card"><div class="row"><input id="fq" placeholder="Поиск: номер или текст"><select id="fs"><option value="">Все статусы</option></select><button id="fb" class="p" style="flex:0">Найти</button></div>
+  <div class="tw" style="margin-top:10px"><table><thead><tr><th>№</th><th>Тема</th><th>Место</th><th>Статус</th><th>Приоритет</th><th>Исполнитель</th><th>Создана</th></tr></thead><tbody id="tb"></tbody></table></div><div id="empty" class="m" hidden>Заявок не найдено.</div></div>
+ </div>
+</section>
+</main>
+<dialog id="dlg"><div class="row" style="justify-content:flex-end"><button id="dx" style="flex:0">✕ Закрыть</button></div><div id="dbody"></div></dialog>
+<div id="toast"></div>
+<script>
+const P=new URLSearchParams(location.search), HOST=P.get('api')||'http://localhost:8000', API=HOST+'/api/v1', $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ST={new:'Новая',under_review:'На рассмотрении',assigned:'Назначен исполнитель',in_progress:'В работе',needs_info:'Нужны уточнения',resolved:'Решена',rejected:'Отклонена'};
+const PR={low:'Низкий',normal:'Обычный',high:'Высокий',urgent:'Срочный'}, AIL={danger:'⚠️ Опасность',question:'💡 Подсказка',fault:'🔧 Неисправность',unknown:'❓ Не уверен'};
+const fmt=d=>new Date(d).toLocaleString('ru-RU',{dateStyle:'short',timeStyle:'short'});
+const uuid=()=>([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));
+let TOKEN=sessionStorage.getItem('upk_token')||'', IDEM=uuid(), AI=null, QR=false, CUR=null, USERS=[];
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2800)}
+async function api(path,{method='GET',body,form,headers={}}={}){
+  const h={...headers};if(TOKEN)h.Authorization='Bearer '+TOKEN;let b;
+  if(form)b=form;else if(body!==undefined){h['Content-Type']='application/json';b=JSON.stringify(body)}
+  let r;try{r=await fetch(API+path,{method,headers:h,body:b})}catch(e){$('#srverr').hidden=false;throw{message:'Нет связи с сервером (localhost:8000)'}}
+  $('#srverr').hidden=true;if(r.status===204)return null;
+  const d=await r.json().catch(()=>null);if(!r.ok){const e=(d&&d.error)||{message:'Ошибка '+r.status};e.status=r.status;throw e}return d}
+async function sapi(p,o){try{return await api(p,o)}catch(e){if(e.status===401){TOKEN='';sessionStorage.removeItem('upk_token');showStaff()}throw e}}
+
+/* ---- навигация ---- */
+function view(v){document.querySelectorAll('main>section').forEach(s=>s.hidden=s.id!=='v-'+v);document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));if(v==='staff')showStaff()}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>view(b.dataset.v));
+
+/* ---- заявитель ---- */
+async function initNew(){
+  try{const [c,l]=await Promise.all([api('/categories'),api('/locations')]);
+    $('#cat').innerHTML='<option value="">Выберите категорию</option>'+c.items.map(x=>`<option value="${esc(x.code)}">${esc(x.name)}</option>`).join('');
+    $('#loc').innerHTML='<option value="">Выберите место</option>'+l.items.map(x=>`<option value="${x.id}">${esc(x.label)}</option>`).join('');
+    const k=P.get('loc');if(k){try{const x=await api('/locations/by-qr/'+encodeURIComponent(k));$('#loc').value=x.id;QR=true;$('#locinfo').textContent='📍 Место определено по QR-коду: '+x.label}catch{$('#locinfo').textContent='QR-код не распознан — выберите место вручную.'}}
+  }catch(e){}}
+$('#askai').onclick=async()=>{const m=$('#aitext').value.trim();if(!m)return toast('Введите вопрос или опишите проблему');
+  const b=$('#askai');b.disabled=true;b.textContent='Думаю…';
+  try{AI=await api('/ai/analyze',{method:'POST',body:{message:m,location_id:+$('#loc').value||undefined}});
+    $('#aiout').innerHTML=`<div class="ai ${AI.type}"><b>${AIL[AI.type]||''}</b>\n${esc(AI.answer)}${AI.type==='danger'?'\n\nПри дыме или огне звоните 112.':''}</div>`+(AI.suggest_ticket?'<div class="row" style="margin-top:8px"><button id="fill">Оформить заявку по этому описанию</button></div>':'');
+    if($('#fill'))$('#fill').onclick=()=>{$('#desc').value=m;if(AI.category_code)$('#cat').value=AI.category_code;$('#f').scrollIntoView({behavior:'smooth'})}
+  }catch(e){$('#aiout').innerHTML=`<div class="ai unknown">Помощник временно недоступен (${esc(e.message)}). Вы можете оформить заявку самостоятельно.</div>`}
+  b.disabled=false;b.textContent='Спросить ИИ'};
+$('#f').onsubmit=async e=>{e.preventDefault();$('#ferr').textContent='';
+  const desc=$('#desc').value.trim(),fd=new FormData();
+  if(!$('#loc').value)return $('#ferr').textContent='Выберите место';if(!$('#cat').value)return $('#ferr').textContent='Выберите категорию';
+  if(desc.length<10)return $('#ferr').textContent='Опишите проблему подробнее (от 10 символов)';
+  fd.append('title',$('#title').value.trim()||desc.slice(0,80));fd.append('description',desc);fd.append('category_code',$('#cat').value);fd.append('location_id',$('#loc').value);
+  fd.append('created_via_qr',QR&&!!P.get('loc'));if($('#contact').value.trim())fd.append('contact_info',$('#contact').value.trim());
+  if(AI&&AI.interaction_id)fd.append('ai_interaction_id',AI.interaction_id);[...$('#photos').files].slice(0,3).forEach(f=>fd.append('photos',f));
+  const b=$('#send');b.disabled=true;
+  try{const r=await api('/tickets',{method:'POST',form:fd,headers:{'Idempotency-Key':IDEM}});
+    const link=location.href.split('#')[0].split('?')[0]+'?track='+r.tracking_token;
+    $('#done').hidden=false;$('#done').innerHTML=`<h3>✅ Заявка принята</h3><p>Номер: <b style="font-size:1.4rem">${esc(r.public_number)}</b></p><p>Ссылка для отслеживания (сохраните её):<br><a href="${esc(link)}">${esc(link)}</a></p><button id="cp">Скопировать ссылку</button>`;
+    $('#cp').onclick=()=>navigator.clipboard.writeText(link).then(()=>toast('Ссылка скопирована'));
+    $('#f').reset();$('#aiout').innerHTML='';$('#aitext').value='';AI=null;IDEM=uuid();if(P.get('loc')&&QR)initNew();$('#done').scrollIntoView({behavior:'smooth'});
+  }catch(x){$('#ferr').textContent=x.fields?Object.values(x.fields).join('. '):x.message}
+  b.disabled=false};
+
+/* ---- отслеживание ---- */
+async function track(raw){const tok=raw.trim().split('track=').pop().split('/').pop().trim();if(!tok)return;
+  try{const t=await api('/tracking/'+encodeURIComponent(tok));
+    $('#tr').innerHTML=`<div class="card"><h3>${esc(t.public_number)} · ${esc(t.title)}</h3><p><span class="b" data-s="${t.status}">${esc(t.status_label)}</span> ${esc(t.category.name)} · ${esc(t.location_label)}</p><p class="pre">${esc(t.description)}</p>
+    ${t.resolution_note?`<p><b>Итог:</b> ${esc(t.resolution_note)}</p>`:''}<h4>История</h4>${t.history.map(h=>`<div>${fmt(h.at)} — <b>${esc(h.status_label)}</b> ${h.note?'· '+esc(h.note):''}</div>`).join('')}
+    ${t.comments.length?'<h4>Комментарии</h4>'+t.comments.map(c=>`<div class="cm"><span class="m">${esc(c.author)}, ${fmt(c.at)}</span><br>${esc(c.body)}</div>`).join(''):''}
+    ${t.needs_reply?'<h4>Требуется ваш ответ</h4><textarea id="rp"></textarea><div class="row" style="margin-top:8px"><button id="rpb" class="p">Отправить ответ</button></div>':''}</div>`;
+    if(t.needs_reply)$('#rpb').onclick=async()=>{try{await api(`/tracking/${encodeURIComponent(tok)}/reply`,{method:'POST',body:{body:$('#rp').value}});toast('Ответ отправлен');track(tok)}catch(e){toast(e.fields?Object.values(e.fields)[0]:e.message)}}
+  }catch(e){$('#tr').innerHTML=`<p class="err">${esc(e.status===404?'Заявка не найдена. Проверьте ссылку или код.':e.message)}</p>`}}
+$('#tkb').onclick=()=>track($('#tk').value);
+
+/* ---- сотрудник ---- */
+function showStaff(){$('#login').hidden=!!TOKEN;$('#panel').hidden=!TOKEN;if(TOKEN)loadList().catch(e=>toast(e.message))}
+$('#login').onsubmit=async e=>{e.preventDefault();$('#lerr').textContent='';
+  try{const d=await api('/auth/login',{method:'POST',body:{login:$('#lg').value.trim(),password:$('#pw').value}});TOKEN=d.access_token;sessionStorage.setItem('upk_token',TOKEN);$('#who').textContent='👤 '+d.user.name;showStaff()}catch(x){$('#lerr').textContent=x.message}};
+$('#out').onclick=()=>{TOKEN='';sessionStorage.removeItem('upk_token');showStaff()};
+$('#fs').innerHTML+=Object.entries(ST).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+async function loadList(){const qs=new URLSearchParams({page_size:100});if($('#fq').value.trim())qs.set('q',$('#fq').value.trim());if($('#fs').value)qs.set('status',$('#fs').value);
+  const [d,s]=await Promise.all([sapi('/staff/tickets?'+qs),sapi('/staff/stats')]);if(!USERS.length)USERS=(await sapi('/staff/users')).items;
+  $('#tb').innerHTML=d.items.map(t=>`<tr data-id="${t.id}"><td><b>${esc(t.public_number)}</b></td><td>${esc(t.title)}</td><td>${esc(t.location_label)}</td><td><span class="b" data-s="${t.status}">${esc(t.status_label)}</span></td><td>${PR[t.priority]}</td><td>${esc(t.assignee?t.assignee.name:'—')}</td><td>${fmt(t.created_at)}</td></tr>`).join('');
+  $('#empty').hidden=d.items.length>0;$('#tb').querySelectorAll('tr').forEach(r=>r.onclick=()=>openT(+r.dataset.id));
+  $('#stats').innerHTML=`<div class="chip">Всего <b>${s.totals.all}</b></div><div class="chip">Открытых <b>${s.totals.open}</b></div><div class="chip">Решено <b>${s.totals.resolved}</b></div><div class="chip">Среднее время решения <b>${s.avg_resolution_hours??'—'}</b> ч</div>`
+   +`<div class="chip">ИИ: ответил сам <b>${s.ai.answered_by_ai}</b> · привёл к заявке <b>${s.ai.converted_to_ticket}</b></div>`+s.by_category.slice(0,4).map(c=>`<div class="chip">${esc(c.name)} <b>${c.count}</b></div>`).join('')+s.by_location.slice(0,2).map(c=>`<div class="chip">📍 ${esc(c.label)} <b>${c.count}</b></div>`).join('')}
+$('#fb').onclick=()=>loadList().catch(e=>toast(e.message));$('#fq').onkeydown=e=>{if(e.key==='Enter')$('#fb').click()};
+async function openT(id){try{const t=await sapi('/staff/tickets/'+id);CUR=id;renderT(t);if(!$('#dlg').open)$('#dlg').showModal()}catch(e){toast(e.message)}}
+$('#dx').onclick=()=>$('#dlg').close();
+function renderT(t){
+  $('#dbody').innerHTML=`<h3>${esc(t.public_number)} · ${esc(t.title)}</h3><p><span class="b" data-s="${t.status}">${esc(t.status_label)}</span> ${esc(t.category.name)} · ${esc(t.location_label)}</p><p class="pre">${esc(t.description)}</p>
+  ${t.contact_info?`<p class="m">Контакт: ${esc(t.contact_info)}</p>`:''}${t.ai?`<p class="m">ИИ-тип обращения: ${esc(t.ai.type)}</p>`:''}<div id="imgs"></div>
+  <h4>Сменить статус</h4><input id="note" placeholder="Комментарий (обязателен для «Решена» и «Отклонена»)"><div class="row" style="margin-top:8px">${t.allowed_transitions.map(s=>`<button data-st="${s}">${ST[s]}</button>`).join('')}</div>
+  <h4>Исполнитель и приоритет</h4><div class="row"><select id="as"><option value="">— не назначен —</option>${USERS.map(u=>`<option value="${u.id}" ${t.assignee&&t.assignee.id===u.id?'selected':''}>${esc(u.name)}</option>`).join('')}</select><button id="asb">Назначить</button><select id="pr">${Object.entries(PR).map(([k,v])=>`<option value="${k}" ${t.priority===k?'selected':''}>${v}</option>`).join('')}</select></div>
+  <h4>Комментарии</h4>${t.comments.map(c=>`<div class="cm ${c.visibility==='internal'?'int':''}"><span class="m">${esc(c.author||'Заявитель')} · ${c.visibility==='internal'?'внутренний':'публичный'} · ${fmt(c.at)}</span><br>${esc(c.body)}</div>`).join('')||'<p class="m">Пока нет</p>'}
+  <textarea id="cm" placeholder="Новый комментарий"></textarea><div class="row" style="margin-top:8px"><select id="cv"><option value="internal">Внутренний</option><option value="public">Виден заявителю</option></select><button id="cmb">Добавить</button></div>
+  <h4>История</h4>${t.history.map(h=>`<div class="m">${fmt(h.at)} · ${esc(({created:'создана',status_changed:'статус: '+(ST[h.old_status]||'—')+' → '+(ST[h.new_status]||''),assigned:'назначен исполнитель',priority_changed:'приоритет',comment_added:'комментарий',applicant_reply:'ответ заявителя'})[h.event]||h.event)} ${h.note?'· '+esc(h.note):''}</div>`).join('')}`;
+  const act=async(p,m,b)=>{try{await sapi(`/staff/tickets/${CUR}${p}`,{method:m,body:b});toast('Сохранено');await openT(CUR);loadList()}catch(e){toast(e.fields?Object.values(e.fields)[0]+' ('+e.message+')':e.message)}};
+  $('#dbody').querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>act('/status','PATCH',{status:b.dataset.st,note:$('#note').value.trim()}));
+  $('#asb').onclick=()=>act('/assignee','PATCH',{assignee_id:$('#as').value?+$('#as').value:null});$('#pr').onchange=()=>act('/priority','PATCH',{priority:$('#pr').value});
+  $('#cmb').onclick=()=>act('/comments','POST',{body:$('#cm').value.trim(),visibility:$('#cv').value});
+  t.attachments.forEach(async a=>{try{const r=await fetch(HOST+a.url,{headers:{Authorization:'Bearer '+TOKEN}});const i=new Image();i.src=URL.createObjectURL(await r.blob());i.title=a.file_name;$('#imgs').appendChild(i)}catch{}})}
+
+initNew();if(P.get('track')){view('track');$('#tk').value=P.get('track');track(P.get('track'))}
+</script></body></html>
