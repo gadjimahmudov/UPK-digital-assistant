@@ -453,5 +453,8 @@ def ai_analyze():
     return jsonify(r)
 # =====================================================================================================
 
+@app.route('/')
+def serve_index():
+    return send_file('index.html')
 if __name__ == "__main__":
     init_db(); app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8000)), debug=os.environ.get("DEBUG") == "1")
