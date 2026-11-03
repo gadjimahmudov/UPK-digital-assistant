@@ -391,5 +391,67 @@ def stats():
                    avg_resolution_hours=round(avg, 1) if avg is not None else None,
                    ai={"interactions": ai["n"], "answered_by_ai": ai["ans"] or 0, "converted_to_ticket": ai["conv"] or 0, "handoff": ai["h"] or 0})
 
+import json as _json
+
+# ---------- CORS (без доп. библиотек; работает и для file://) ----------
+@app.after_request
+def _cors(r):
+    r.headers["Access-Control-Allow-Origin"] = "*"
+    r.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Idempotency-Key"
+    r.headers["Access-Control-Allow-Methods"] = "GET, POST, PATCH, OPTIONS"
+    return r
+
+# ---------- ИИ-модуль на правилах (без внешних API) ----------
+def _load_kb():
+    for p in (os.path.join(BASE, "knowledge_base.json"), os.path.join(BASE, "..", "ai", "knowledge_base.json")):
+        if os.path.exists(p):
+            return _json.load(open(p, encoding="utf-8"))["entries"]
+    return [{"id": "kb_projector_connect", "keywords": ["проектор", "hdmi", "подключить"],
+             "answer": "1) Включите проектор и дождитесь прогрева.\n2) Подключите ноутбук кабелем HDMI или VGA.\n3) На проекторе выберите вход (Source/Input).\n4) На ноутбуке нажмите Win+P → «Повторяющийся».\nНе помогло — оформите заявку."},
+            {"id": "kb_check_status", "keywords": ["статус", "заявка", "отслеживание"],
+             "answer": "После отправки заявки вы получаете номер и ссылку для отслеживания. Откройте её, чтобы увидеть статус и комментарии."}]
+KB = _load_kb()
+R_DANGER = re.compile(r"искр|\bдым|запах\s+гар|\bгар(ь|и|ью)\b|\bогон|пожар|замыкани|бьет\s+током|ударил\w*\s+током|оголенн|запах\s+газа")
+R_UNSAFE = re.compile(r"(проводк|розетк|щит).{0,30}(сам|самостоят)|(сам|самостоят).{0,30}(проводк|розетк|щит)|вскрыть\s+(щит|розетк)")
+R_SECRET = re.compile(r"парол|код\s+доступа|логин\s+от")
+R_QUESTION = re.compile(r"\b(как|где|почему|зачем|куда|когда|что\s+делать)\b|\?")
+R_FAULT = re.compile(r"слом|не\s+работа|не\s+включа|не\s+печата|не\s+горит|не\s+откры|не\s+закры|неисправ|поломк|разбит|треснул|течет|протека|грязн|нет\s+(света|интернета|воды)|заклини|оторва")
+CAT_HINTS = [("equipment", r"проектор|компьютер|ноутбук|принтер|доск|монитор"), ("electricity", r"свет|ламп|розетк|выключат|электр|провод"),
+             ("network", r"интернет|wi-?fi|сеть|сетев"), ("building", r"окн|двер|замок|потолок|стен|ручк|кран"),
+             ("furniture", r"стул|\bстол\b|шкаф|парт|жалюзи|мебел"), ("cleaning", r"грязн|мусор|уборк|пролит")]
+ANS_DANGER = "⚠️ ОПАСНО! Не трогайте оборудование, отойдите и сообщите сотруднику!"
+
+def _ai_reply(text):
+    t = text.lower().replace("ё", "е")
+    cat = next((c for c, p in CAT_HINTS if re.search(p, t)), "other")
+    scored = sorted(((sum(1 for k in e["keywords"] if k.lower()[:max(4, len(k) - 2)] in t), e) for e in KB), key=lambda x: -x[0])
+    kb = scored[0][1] if scored and scored[0][0] > 0 else None
+    out = {"type": "unknown", "answer": "Я не уверен, но лучше оформить заявку.", "suggest_ticket": True, "category_code": cat, "kb_codes": [], "confidence": 0.4}
+    if R_DANGER.search(t):
+        out.update(type="danger", answer=ANS_DANGER, confidence=0.95, priority_suggestion="urgent")
+    elif R_UNSAFE.search(t):
+        out.update(type="danger", answer="Работы с проводкой опасны для жизни, я не могу дать такую инструкцию. Обратитесь к ответственному сотруднику.", suggest_ticket=False, category_code=None, confidence=0.9)
+    elif R_SECRET.search(t):
+        out.update(answer="Пароли и коды доступа я не выдаю. Обратитесь к ответственному сотруднику по официальной процедуре.", suggest_ticket=False, category_code=None, confidence=0.9)
+    elif R_QUESTION.search(t) and kb:
+        out.update(type="question", answer=kb["answer"], suggest_ticket=False, category_code=None, kb_codes=[kb["id"]], confidence=0.8)
+    elif R_FAULT.search(t):
+        out.update(type="fault", answer="Похоже на поломку. Оформите заявку, и мы придем.", confidence=0.85)
+    return out
+
+@route("/ai/analyze", methods=["POST"])
+def ai_analyze():
+    d = body_json(); msg = str(d.get("message", "")).strip()
+    if not 1 <= len(msg) <= 1000:
+        raise APIError("validation_error", "Введите сообщение (до 1000 символов)", 422, {"message": "От 1 до 1000 символов"})
+    r = _ai_reply(msg)
+    lid = d.get("location_id") if isinstance(d.get("location_id"), int) else None
+    cur = q("INSERT INTO ai_interactions(location_id,input_text,result_type,confidence,suggest_ticket,handoff,kb_codes,source,created_at) VALUES(?,?,?,?,?,?,?,?,?)",
+            (lid, msg, {"question": "info_question", "fault": "malfunction"}.get(r["type"], r["type"]), r["confidence"],
+             int(r["suggest_ticket"]), int(r["type"] == "unknown"), ",".join(r["kb_codes"]), "rules", now()))
+    db().commit(); r["interaction_id"] = cur.lastrowid
+    return jsonify(r)
+# =====================================================================================================
+
 if __name__ == "__main__":
     init_db(); app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8000)), debug=os.environ.get("DEBUG") == "1")
