@@ -4,7 +4,7 @@
 
 ## 🛠 Стек технологий
 - **Backend:** Python, Flask, SQLite
-- **Frontend:** HTML, CSS, Vanilla JS *(в разработке)*
+- **Frontend:** HTML, CSS, Vanilla JS
 - **ИИ-модуль:** Локальная классификация (демо-режим)
 
 ## 🚀 Как запустить локально
