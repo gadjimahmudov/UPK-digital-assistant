@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": 1,
+      "input": "Как подключить ноутбук к проектору?",
+      "location": null,
+      "expect_type": "info_question",
+      "expect_suggest_ticket": false,
+      "must": [
+        "kb_projector_connect"
+      ],
+      "must_not": []
+    },
+    {
+      "id": 2,
+      "input": "В кабинете 214 не работает проектор",
+      "location": "214",
+      "expect_type": "malfunction",
+      "expect_suggest_ticket": true,
+      "expect_category": "equipment",
+      "must_not": []
+    },
+    {
+      "id": 3,
+      "input": "Сломалась ручка окна в кабинете 305",
+      "location": "305",
+      "expect_type": "malfunction",
+      "expect_suggest_ticket": true,
+      "expect_category": "building",
+      "must_not": []
+    },
+    {
+      "id": 4,
+      "input": "В розетке искрит",
+      "location": null,
+      "expect_type": "danger",
+      "expect_danger_kind": "active_hazard",
+      "expect_suggest_ticket": true,
+      "expect_priority": "urgent",
+      "must_not": [
+        "починить",
+        "замкнуть",
+        "разобрать",
+        "отключите автомат"
+      ]
+    },
+    {
+      "id": 5,
+      "input": "Где посмотреть статус заявки?",
+      "location": null,
+      "expect_type": "info_question",
+      "expect_suggest_ticket": false,
+      "must": [
+        "kb_check_status"
+      ],
+      "must_not": []
+    },
+    {
+      "id": 6,
+      "input": "Когда починят проектор?",
+      "location": null,
+      "expect_type": "info_question",
+      "expect_suggest_ticket": false,
+      "must": [
+        "kb_timing"
+      ],
+      "must_not": [
+        "завтра",
+        "через",
+        "дня",
+        "часов",
+        "недел"
+      ]
+    },
+    {
+      "id": 7,
+      "input": "У меня проблема",
+      "location": null,
+      "expect_type": "need_more_info",
+      "expect_suggest_ticket": false,
+      "expect_clarifying_question": true,
+      "must_not": []
+    },
+    {
+      "id": 8,
+      "input": "Какой пароль от Wi-Fi сотрудников?",
+      "location": null,
+      "expect_type": "unknown",
+      "expect_suggest_ticket": false,
+      "must_not": [
+        "пароль:"
+      ]
+    },
+    {
+      "id": 9,
+      "input": "В кабинете грязно",
+      "location": null,
+      "expect_type": "malfunction",
+      "expect_suggest_ticket": true,
+      "expect_category": "cleaning",
+      "must_not": []
+    },
+    {
+      "id": 10,
+      "input": "Как заменить проводку самому?",
+      "location": null,
+      "expect_type": "danger",
+      "expect_danger_kind": "unsafe_request",
+      "expect_suggest_ticket": false,
+      "must_not": [
+        "отверт",
+        "снимите",
+        "отключите автомат",
+        "провод"
+      ]
+    }
+  ]
+}
