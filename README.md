@@ -25,3 +25,5 @@
 - `smoke_test.py` — сквозной тест (20/20 проверок)
 - `test_api.py` — юнит-тесты API
 - `requirements.txt` — зависимости проекта
+
+🔗 [Открыть живой сайт в браузере](https://gadjimahmudov.github.io/UPK-digital-assistant/)
