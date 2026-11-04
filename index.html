@@ -27,7 +27,7 @@ dialog{width:min(680px,96vw);max-height:92vh;border:1px solid var(--l);border-ra
 </style></head><body>
 <header><b>🏫 УПК · Цифровой помощник</b><nav><button data-v="new" class="on">Подать заявку</button><button data-v="track">Отследить</button><button data-v="staff">Сотрудник</button></nav></header>
 <main>
-<div id="srverr" class="card err" hidden>Нет связи с сервером. Запустите backend: <code>python app.py</code> (http://localhost:8000)</div>
+<div id="srverr" class="card err" hidden>Нет связи с сервером. Запустите backend: <code>python app.py</code> и откройте страницу по адресу сервера (http://localhost:8000)</div>
 
 <section id="v-new">
  <div class="card"><h2>🤖 Спросите ИИ-помощника</h2>
@@ -48,7 +48,7 @@ dialog{width:min(680px,96vw);max-height:92vh;border:1px solid var(--l);border-ra
  <div class="row"><input id="tk" placeholder="Вставьте ссылку или код отслеживания"><button id="tkb" class="p">Найти</button></div></div><div id="tr"></div></section>
 
 <section id="v-staff" hidden>
- <form id="login" class="card"><h2>Вход сотрудника УПК</h2><label>Логин</label><input id="lg" value="admin" autocomplete="username"><label>Пароль</label><input id="pw" type="password" value="demo12345" autocomplete="current-password">
+ <form id="login" class="card"><h2>Вход сотрудника УПК</h2><label>Логин</label><input id="lg" autocomplete="username"><label>Пароль</label><input id="pw" type="password" autocomplete="current-password">
   <div id="lerr" class="err"></div><div class="row" style="margin-top:10px"><button class="p">Войти</button></div></form>
  <div id="panel" hidden>
   <div class="row" style="margin-bottom:10px"><b id="who"></b><button id="out" style="flex:0">Выйти</button></div><div id="stats" class="chips"></div>
@@ -60,7 +60,7 @@ dialog{width:min(680px,96vw);max-height:92vh;border:1px solid var(--l);border-ra
 <dialog id="dlg"><div class="row" style="justify-content:flex-end"><button id="dx" style="flex:0">✕ Закрыть</button></div><div id="dbody"></div></dialog>
 <div id="toast"></div>
 <script>
-const P=new URLSearchParams(location.search), HOST=P.get('api')||'http://localhost:8000', API=HOST+'/api/v1', $=s=>document.querySelector(s);
+const P=new URLSearchParams(location.search), HOST=P.get('api')||(location.protocol==='file:'?'http://localhost:8000':location.origin), API=HOST+'/api/v1', $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ST={new:'Новая',under_review:'На рассмотрении',assigned:'Назначен исполнитель',in_progress:'В работе',needs_info:'Нужны уточнения',resolved:'Решена',rejected:'Отклонена'};
 const PR={low:'Низкий',normal:'Обычный',high:'Высокий',urgent:'Срочный'}, AIL={danger:'⚠️ Опасность',question:'💡 Подсказка',fault:'🔧 Неисправность',unknown:'❓ Не уверен'};
@@ -71,7 +71,7 @@ function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');setT
 async function api(path,{method='GET',body,form,headers={}}={}){
   const h={...headers};if(TOKEN)h.Authorization='Bearer '+TOKEN;let b;
   if(form)b=form;else if(body!==undefined){h['Content-Type']='application/json';b=JSON.stringify(body)}
-  let r;try{r=await fetch(API+path,{method,headers:h,body:b})}catch(e){$('#srverr').hidden=false;throw{message:'Нет связи с сервером (localhost:8000)'}}
+  let r;try{r=await fetch(API+path,{method,headers:h,body:b})}catch(e){$('#srverr').hidden=false;throw{message:'Нет связи с сервером ('+HOST+')'}}
   $('#srverr').hidden=true;if(r.status===204)return null;
   const d=await r.json().catch(()=>null);if(!r.ok){const e=(d&&d.error)||{message:'Ошибка '+r.status};e.status=r.status;throw e}return d}
 async function sapi(p,o){try{return await api(p,o)}catch(e){if(e.status===401){TOKEN='';sessionStorage.removeItem('upk_token');showStaff()}throw e}}
@@ -150,5 +150,6 @@ function renderT(t){
   $('#cmb').onclick=()=>act('/comments','POST',{body:$('#cm').value.trim(),visibility:$('#cv').value});
   t.attachments.forEach(async a=>{try{const r=await fetch(HOST+a.url,{headers:{Authorization:'Bearer '+TOKEN}});const i=new Image();i.src=URL.createObjectURL(await r.blob());i.title=a.file_name;$('#imgs').appendChild(i)}catch{}})}
 
+if(['localhost','127.0.0.1',''].includes(location.hostname)){$('#lg').value='admin';$('#pw').value='demo12345'} /* демо-логин подставляется только на локальной машине */
 initNew();if(P.get('track')){view('track');$('#tk').value=P.get('track');track(P.get('track'))}
 </script></body></html>
