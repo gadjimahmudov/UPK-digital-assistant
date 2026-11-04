@@ -9,6 +9,8 @@ UPK-digital-assistant/
 ├── knowledge_base.json    # база знаний ИИ (11 статей); подхватывается при старте сервера
 ├── requirements.txt       # flask, pyjwt
 ├── make_qr.py             # генерация QR-кодов для мест (нужна qrcode[pil])
+├── wsgi.py                # точка входа для хостинга (PythonAnywhere, gunicorn)
+├── DEPLOY.md              # пошаговый деплой в интернет
 │
 ├── test_api.py            # автотесты API (7)
 ├── test_ai.py             # автотесты ИИ-модуля и главной страницы (7)
