@@ -1,16 +1,26 @@
-"""УПК: Цифровой помощник. Этап 1: backend (Flask + SQLite). Контракт: ../docs/api-contract.md"""
+"""УПК: Цифровой помощник — backend (Flask + SQLite). Контракт API: api-contract.md"""
 import os, re, sqlite3, secrets, hashlib, hmac, base64, uuid
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 import jwt
 from flask import Flask, request, jsonify, g, send_file
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.exceptions import HTTPException
 
 BASE = os.path.dirname(os.path.abspath(__file__))
+
+def _secret(name):
+    """Секрет из переменной окружения; если её нет, один раз генерируется и сохраняется в .secrets_<name> (в .gitignore)."""
+    v = os.environ.get(name)
+    if v: return v
+    p = os.path.join(BASE, ".secrets_" + name.lower())
+    if not os.path.exists(p):
+        with open(p, "w") as f: f.write(secrets.token_hex(32))
+    return open(p).read().strip()
 CFG = {
     "DB_PATH": os.environ.get("DB_PATH", os.path.join(BASE, "upk.db")),
-    "JWT_SECRET": os.environ.get("JWT_SECRET", "dev-jwt-secret-CHANGE-ME"),
-    "TRACKING_SECRET": os.environ.get("TRACKING_SECRET", "dev-track-secret-CHANGE-ME"),
+    "JWT_SECRET": _secret("JWT_SECRET"),
+    "TRACKING_SECRET": _secret("TRACKING_SECRET"),
     "UPLOAD_DIR": os.environ.get("UPLOAD_DIR", os.path.join(BASE, "storage")),
     "DEMO_PASSWORD": os.environ.get("DEMO_PASSWORD", "demo12345"),
 }
@@ -83,6 +93,8 @@ def _405(_): return jsonify(error={"code": "bad_request", "message": "Метод
 def _413(_): return jsonify(error={"code": "file_too_large", "message": "Файл слишком большой"}), 413
 @app.errorhandler(Exception)
 def _500(e):
+    if isinstance(e, HTTPException):
+        return jsonify(error={"code": "bad_request", "message": e.description}), e.code
     app.logger.exception(e)
     return jsonify(error={"code": "internal_error", "message": "Ошибка сервера, попробуйте ещё раз"}), 500
 
@@ -201,7 +213,6 @@ def create_ticket():
     if len(files) > 3: f["photos"] = "Не больше 3 фото"
     if f: raise APIError("validation_error", "Проверьте поля формы", 422, f)
     token = make_token(idem)
-    base = {"status": "new"}
     ex = q1("SELECT * FROM tickets WHERE idempotency_key=?", (idem,))
     if ex:
         return jsonify(public_number=ex["public_number"], status=ex["status"], created_at=ex["created_at"],
@@ -411,10 +422,10 @@ def _load_kb():
             {"id": "kb_check_status", "keywords": ["статус", "заявка", "отслеживание"],
              "answer": "После отправки заявки вы получаете номер и ссылку для отслеживания. Откройте её, чтобы увидеть статус и комментарии."}]
 KB = _load_kb()
-R_DANGER = re.compile(r"искр|\bдым|запах\s+гар|\bгар(ь|и|ью)\b|\bогон|пожар|замыкани|бьет\s+током|ударил\w*\s+током|оголенн|запах\s+газа")
+R_DANGER = re.compile(r"искр|дым|запах\w*\s+(гар|пален|горел)|пахнет\s+(гар|пален|горел)|пален|горелым|\bгар(ь|и|ью)\b|\bогон|пожар|замыкани|(бьет|ударил\w*|ударяет)\s+током|током\s+бьет|оголенн|голые?\s+провод|запах\s+газа|горит\s+(провод|розетк|щит|кабел|монитор|компьютер)|что-то\s+горит|раскалил|оплави|перегре|капает\s+(вода\s+)?на\s+(розетк|провод|щит)")
 R_UNSAFE = re.compile(r"(проводк|розетк|щит).{0,30}(сам|самостоят)|(сам|самостоят).{0,30}(проводк|розетк|щит)|вскрыть\s+(щит|розетк)")
 R_SECRET = re.compile(r"парол|код\s+доступа|логин\s+от")
-R_QUESTION = re.compile(r"\b(как|где|почему|зачем|куда|когда|что\s+делать)\b|\?")
+R_QUESTION = re.compile(r"\b(как|где|почему|зачем|куда|когда|что\s+делать)\b")
 R_FAULT = re.compile(r"слом|не\s+работа|не\s+включа|не\s+печата|не\s+горит|не\s+откры|не\s+закры|неисправ|поломк|разбит|треснул|течет|протека|грязн|нет\s+(света|интернета|воды)|заклини|оторва")
 CAT_HINTS = [("equipment", r"проектор|компьютер|ноутбук|принтер|доск|монитор"), ("electricity", r"свет|ламп|розетк|выключат|электр|провод"),
              ("network", r"интернет|wi-?fi|сеть|сетев"), ("building", r"окн|двер|замок|потолок|стен|ручк|кран"),
@@ -433,8 +444,9 @@ def _ai_reply(text):
         out.update(type="danger", answer="Работы с проводкой опасны для жизни, я не могу дать такую инструкцию. Обратитесь к ответственному сотруднику.", suggest_ticket=False, category_code=None, confidence=0.9)
     elif R_SECRET.search(t):
         out.update(answer="Пароли и коды доступа я не выдаю. Обратитесь к ответственному сотруднику по официальной процедуре.", suggest_ticket=False, category_code=None, confidence=0.9)
-    elif R_QUESTION.search(t) and kb:
-        out.update(type="question", answer=kb["answer"], suggest_ticket=False, category_code=None, kb_codes=[kb["id"]], confidence=0.8)
+    elif (R_QUESTION.search(t) or ("?" in t and not R_FAULT.search(t))) and kb:
+        fault = bool(R_FAULT.search(t))  # и вопрос, и неисправность: даём подсказку, но заявку тоже предлагаем
+        out.update(type="question", answer=kb["answer"], suggest_ticket=fault, category_code=cat if fault else None, kb_codes=[kb["id"]], confidence=0.8)
     elif R_FAULT.search(t):
         out.update(type="fault", answer="Похоже на поломку. Оформите заявку, и мы придем.", confidence=0.85)
     return out
@@ -455,6 +467,7 @@ def ai_analyze():
 
 @app.route('/')
 def serve_index():
-    return send_file('index.html')
+    return send_file(os.path.join(BASE, 'index.html'))
+
 if __name__ == "__main__":
     init_db(); app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8000)), debug=os.environ.get("DEBUG") == "1")
