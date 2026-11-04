@@ -27,3 +27,6 @@
 - `requirements.txt` — зависимости проекта
 
 🔗 [Открыть живой сайт в браузере](https://gadjimahmudov.github.io/UPK-digital-assistant/)
+
+📊 Презентация проекта:
+Скачать PDF | Скачать PPTX (PowerPoint)
