@@ -187,4 +187,4 @@ python smoke_test.py                       # 20 проверок живого с
 
 ## 📂 Структура проекта
 
-См. [`repo-structure.md`](repo-structure.md).
+ [`repo-structure.md`](repo-structure.md).
