@@ -60,7 +60,7 @@ dialog{width:min(680px,96vw);max-height:92vh;border:1px solid var(--l);border-ra
 <dialog id="dlg"><div class="row" style="justify-content:flex-end"><button id="dx" style="flex:0">✕ Закрыть</button></div><div id="dbody"></div></dialog>
 <div id="toast"></div>
 <script>
-const P=new URLSearchParams(location.search), HOST=P.get('api')||(location.protocol==='file:'?'http://localhost:8000':location.origin), API=HOST+'/api/v1', $=s=>document.querySelector(s);
+const P=new URLSearchParams(location.search), HOST=P.get('api')||(location.protocol==='file:'?'http://localhost:8000':'https://upk-digital-assistant.onrender.com'), API=HOST+'/api/v1', $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ST={new:'Новая',under_review:'На рассмотрении',assigned:'Назначен исполнитель',in_progress:'В работе',needs_info:'Нужны уточнения',resolved:'Решена',rejected:'Отклонена'};
 const PR={low:'Низкий',normal:'Обычный',high:'Высокий',urgent:'Срочный'}, AIL={danger:'⚠️ Опасность',question:'💡 Подсказка',fault:'🔧 Неисправность',unknown:'❓ Не уверен'};
