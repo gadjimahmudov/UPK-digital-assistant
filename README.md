@@ -1,6 +1,32 @@
+<div align="center">
+
 # 📱 УПК: Цифровой помощник колледжа
 
-Веб-система приёма и обработки заявок о неисправностях в колледже. Человек сканирует **QR-код в кабинете**, спрашивает **ИИ-помощника** или оформляет **заявку**, а сотрудник УПК обрабатывает её в **панели**. Проект сделан для хакатона.
+**Сообщите о поломке за 30 секунд: отсканируйте QR-код в кабинете, и заявка уже у сотрудника.**
+
+![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-backend-000000?logo=flask)
+![SQLite](https://img.shields.io/badge/SQLite-database-003B57?logo=sqlite&logoColor=white)
+![JS](https://img.shields.io/badge/Vanilla_JS-no_build-F7DF1E?logo=javascript&logoColor=black)
+![Tests](https://img.shields.io/badge/tests-14_unit_%2B_20_smoke-brightgreen)
+
+[🖥 Живой сайт](https://gadjimahmudov.github.io/UPK-digital-assistant/) · [⚙️ Сервер на Render](https://upk-digital-assistant.onrender.com) · [📄 Презентация (PDF)](https://github.com/gadjimahmudov/UPK-digital-assistant/raw/main/UPK_Presentation.pdf) · [📊 Презентация (PPTX)](https://github.com/gadjimahmudov/UPK-digital-assistant/raw/main/UPK_Presentation.pptx)
+
+</div>
+
+Веб-система приёма и обработки заявок о неисправностях в колледже. Заявитель сканирует **QR-код в кабинете**, спрашивает **ИИ-помощника** или оформляет **заявку**, а сотрудник УПК ведёт её в **панели** до решения. Проект сделан для хакатона.
+
+## 🌐 Онлайн-демо
+
+| Что | Ссылка |
+|---|---|
+| 🖥 Живой сайт (GitHub Pages) | https://gadjimahmudov.github.io/UPK-digital-assistant/ |
+| ⚙️ Живой сервер на Render (API + тот же интерфейс) | https://upk-digital-assistant.onrender.com |
+| 🔌 Пример запроса к API | https://upk-digital-assistant.onrender.com/api/v1/categories |
+
+> ⏳ **Сервер работает на бесплатном тарифе Render.** После ~15 минут без запросов он засыпает, и первое открытие занимает около минуты: откройте ссылку заранее и подождите. Файловая система бесплатного тарифа временная, поэтому **заявки и фото демо-базы сбрасываются при перезапуске сервера**. Для демонстрации этого достаточно, для постоянной работы нужны платный тариф или внешняя база.
+
+QR-коды из репозитория (`QR_*.png`) ведут на облачный сервер и открываются с любого телефона и любой сети.
 
 **Как это работает:** QR-код → форма с уже выбранным помещением → ИИ-подсказка → заявка с номером и ссылкой отслеживания → панель сотрудника (статусы, исполнитель, комментарии, статистика).
 
@@ -40,13 +66,11 @@ python app.py
 
 Откройте в браузере **http://localhost:8000**. При первом запуске создаются база `upk.db`, категории, 5 помещений и демо-сотрудники.
 
-> Страница на GitHub Pages ([ссылка](https://gadjimahmudov.github.io/UPK-digital-assistant/)) показывает только статичный интерфейс. Без запущенного backend заявки и ИИ там не работают; полноценная демонстрация — локальный запуск.
-
 ### Запуск с телефона (QR-коды)
 1. Телефон и ноутбук в **одной Wi-Fi сети** (в общей сети колледжа клиенты часто изолированы: тогда включите точку доступа на телефоне и подключите к ней ноутбук).
 2. Узнайте IP ноутбука: `ipconfig` (Windows, «IPv4-адрес»), `ipconfig getifaddr en0` (Mac), `hostname -I` (Linux). Разрешите доступ Python в брандмауэре для частных сетей.
 3. Откройте на телефоне `http://<IP>:8000/?loc=k214-Xv7Qe3Ls`.
-4. Свои QR-коды: `pip install "qrcode[pil]"`, затем `python make_qr.py http://<IP>:8000`. Файлы появятся в папке `qr/`. Вшитые в репозиторий `QR_*.png` работают, только если ведут на адрес, доступный телефону (не `localhost`).
+4. Для локального показа свои QR-коды: `pip install "qrcode[pil]"`, затем `python make_qr.py http://<IP>:8000`. Файлы появятся в папке `qr/`. QR из репозитория ведут на облачный сервер и локально не нужны. Чтобы перегенерировать их для другого адреса: `python make_qr.py https://upk-digital-assistant.onrender.com`.
 
 | Место | Ключ QR |
 |---|---|
@@ -66,7 +90,7 @@ python app.py
 | `upk1` | Сотрудник УПК | `demo12345` |
 | `upk2` | Сотрудник УПК 2 | `demo12345` |
 
-На локальной машине логин и пароль подставляются в форму сами. Сменить пароль: удалить `upk.db`, задать переменную `DEMO_PASSWORD` и запустить заново.
+На локальной машине логин и пароль подставляются в форму сами. Если на онлайн-версии вход не срабатывает, пароль сообщён жюри отдельно. Сменить пароль: удалить `upk.db`, задать переменную `DEMO_PASSWORD` и запустить заново.
 
 ## 🎬 Сценарий демонстрации (5 минут)
 
@@ -131,6 +155,10 @@ SQLite, файл `upk.db`, схема создаётся при первом з�
 | `JWT_SECRET`, `TRACKING_SECRET` | генерируются | секреты подписи токенов |
 | `DEMO_PASSWORD` | `demo12345` | пароль демо-аккаунтов (при создании базы) |
 
+## ☁️ Деплой
+
+Сервер развёрнут на **Render** как Web Service из этого репозитория. Точка входа для хостинга: `wsgi.py` (создаёт базу при старте). Типовые настройки: build `pip install -r requirements.txt gunicorn`, start `gunicorn wsgi:app`; переменные окружения `JWT_SECRET`, `TRACKING_SECRET`, `DEMO_PASSWORD` задаются в панели Render, а не в коде. Подробная инструкция (также для PythonAnywhere): [`DEPLOY.md`](DEPLOY.md).
+
 ## ✅ Тесты
 
 ```bash
@@ -146,12 +174,16 @@ python smoke_test.py                       # 20 проверок живого с
 - SQLite и локальные файлы подходят для демо и одной точки установки, но не для нагрузки и нескольких серверов
 - Нет админ-интерфейса: помещения, сотрудники и QR меняются в коде/базе
 - Нет ограничения частоты запросов и уведомлений (почта, Telegram)
+- Облачная демо-версия на бесплатном тарифе: сервер «засыпает» после простоя, а заявки и фото сбрасываются при перезапуске (временная файловая система)
 - Общий демо-пароль и открытый CORS (`*`): перед публикацией в интернет сменить пароли, задать секреты и ограничить CORS
 - Интерфейс проверен автоматически в Chrome на компьютере; на разных телефонах и браузерах проверьте вручную перед защитой
 
 ## 📊 Презентация
 
-[PDF](https://github.com/gadjimahmudov/UPK-digital-assistant/raw/main/UPK_Presentation.pdf) · [PPTX](https://github.com/gadjimahmudov/UPK-digital-assistant/raw/main/UPK_Presentation.pptx)
+| Формат | Скачать |
+|---|---|
+| 📄 PDF | [UPK_Presentation.pdf](https://github.com/gadjimahmudov/UPK-digital-assistant/raw/main/UPK_Presentation.pdf) |
+| 📊 PPTX | [UPK_Presentation.pptx](https://github.com/gadjimahmudov/UPK-digital-assistant/raw/main/UPK_Presentation.pptx) |
 
 ## 📂 Структура проекта
 
