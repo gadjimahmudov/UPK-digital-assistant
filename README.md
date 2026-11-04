@@ -28,5 +28,5 @@
 
 🔗 [Открыть живой сайт в браузере](https://gadjimahmudov.github.io/UPK-digital-assistant/)
 
-📊 Презентация проекта:
-Скачать PDF | Скачать PPTX (PowerPoint)
+📊 **Презентация проекта:**
+[Скачать PDF](https://github.com/gadjimahmudov/UPK-digital-assistant/raw/main/UPK_Presentation.pdf) | [Скачать PPTX (PowerPoint)](https://github.com/gadjimahmudov/UPK-digital-assistant/raw/main/UPK_Presentation.pptx)
